@@ -10,7 +10,19 @@ import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderStroke;
+import javafx.scene.layout.BorderStrokeStyle;
+import javafx.scene.layout.BorderWidths;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -21,9 +33,9 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
 /**
- * Visual component for displaying light sensor readings in a modern card style
- * with a horizontal light spectrum bar and a context menu button for deletion.
- * Uses the same horizontal layout pattern as TemperatureSensorView and HumiditySensorView.
+ * Visual component for displaying light sensor readings in a modern card style with a horizontal
+ * light spectrum bar and a context menu button for deletion. Uses the same horizontal layout
+ * pattern as TemperatureSensorView and HumiditySensorView.
  *
  * @author Green House Control Team
  * @version 3.2 (Added Light Range Scale below spectrum bar)
@@ -31,10 +43,10 @@ import javafx.scene.text.FontWeight;
 public class LightSensorView {
 
   // Light level thresholds for color coding (lux)
-  private static final double LIGHT_LOW_THRESHOLD = 200.0;
-  private static final double LIGHT_HIGH_THRESHOLD = 1000.0;
+  private static final double LIGHT_LOW_THRESHOLD = 5000.0;
+  private static final double LIGHT_HIGH_THRESHOLD = 25000.0;
   private static final double LIGHT_MIN = 0.0;
-  private static final double LIGHT_MAX = 1500.0;
+  private static final double LIGHT_MAX = 50000.0;
 
   // Visual constants
   private static final double CARD_WIDTH = 250.0;
@@ -45,9 +57,9 @@ public class LightSensorView {
   /**
    * Creates a visual representation of a light sensor in a modern card style.
    *
-   * @param name Display name for the sensor (e.g., "Light")
+   * @param name  Display name for the sensor (e.g., "Light")
    * @param value Current light value in lux
-   * @param unit Unit string to display (e.g., "lx")
+   * @param unit  Unit string to display (e.g., "lx")
    * @return A Pane containing the complete sensor visualization
    */
   public static Pane create(String name, double value, String unit) {
@@ -105,7 +117,8 @@ public class LightSensorView {
       icon.setFitWidth(ICON_SIZE + 25);
       icon.setFitHeight(ICON_SIZE + 25);
       icon.setPreserveRatio(true);
-      icon.setEffect(new DropShadow(BlurType.GAUSSIAN, darkColor.deriveColor(0, 1.0, 1.0, 0.5), 5, 0, 0, 0));
+      icon.setEffect(
+          new DropShadow(BlurType.GAUSSIAN, darkColor.deriveColor(0, 1.0, 1.0, 0.5), 5, 0, 0, 0));
     } catch (Exception e) {
       System.err.println("⚠️ Could not load light icon: " + e.getMessage());
     }
@@ -120,14 +133,18 @@ public class LightSensorView {
 
     // --- 3. Light Spectrum Bar (Full Range Visual) ---
 
-    // Define the light gradient spectrum (Dark=0lx, Normal=200-1000lx, Bright=1500lx)
+    double darkToNormalStop = LIGHT_LOW_THRESHOLD / LIGHT_MAX; // ~5k/50k = 0.1
+    double normalToBrightStop = LIGHT_HIGH_THRESHOLD / LIGHT_MAX; // ~25k/50k = 0.5
+
     LinearGradient spectrumGradient = new LinearGradient(
         0, 0, 1, 0, true, CycleMethod.NO_CYCLE,
-        new Stop(0.0, Color.web("#5C6BC0")),                    // Indigo - Dark (0 lx)
-        new Stop(LIGHT_LOW_THRESHOLD / LIGHT_MAX, Color.web("#66BB6A")), // Green transition
-        new Stop(0.5, Color.web("#66BB6A")),                    // Green - Normal (750 lx)
-        new Stop(LIGHT_HIGH_THRESHOLD / LIGHT_MAX, Color.web("#FFD54F")), // Yellow transition
-        new Stop(1.0, Color.web("#FFA000"))                     // Amber - Bright (1500 lx)
+        new Stop(0.0, Color.web("#5C6BC0")),                     // Indigo - DARK start
+        new Stop(darkToNormalStop, Color.web("#66BB6A")),         // Green - NORMAL start
+        new Stop(normalToBrightStop - 0.05, Color.web("#66BB6A")), // Green end,
+        new Stop(normalToBrightStop, Color.web("#DCE775")),        // LIMEx)
+        new Stop(normalToBrightStop + 0.05, Color.web("#FFD54F")), // Yellow star
+
+        new Stop(1.0, Color.web("#FFA000"))                      // Amber - BRIGHT end
     );
 
     // Background bar (the spectrum itself)
@@ -141,7 +158,8 @@ public class LightSensorView {
     double positionRatio = clampedValue / LIGHT_MAX;
     double indicatorX = (BAR_WIDTH * positionRatio) - 1; // Center the indicator
 
-    Rectangle indicator = new Rectangle(2, BAR_HEIGHT + 4); // Vertical line slightly taller than the bar
+    Rectangle indicator = new Rectangle(2,
+        BAR_HEIGHT + 4); // Vertical line slightly taller than the bar
     indicator.setFill(Color.BLACK); // Marker color
     indicator.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.BLACK, 5, 0, 0, 0));
 
@@ -217,7 +235,8 @@ public class LightSensorView {
     HBox statusBar = new HBox();
     statusBar.setAlignment(Pos.CENTER_LEFT);
     statusBar.setPadding(new Insets(5, 10, 5, 10));
-    statusBar.setBackground(new Background(new BackgroundFill(baseColor, new CornerRadii(8, 8, 0, 0, false), Insets.EMPTY)));
+    statusBar.setBackground(new Background(
+        new BackgroundFill(baseColor, new CornerRadii(8, 8, 0, 0, false), Insets.EMPTY)));
 
     HBox statusBox = new HBox(statusLabel);
     statusBox.setAlignment(Pos.CENTER_LEFT);
@@ -232,7 +251,8 @@ public class LightSensorView {
 
     Button menuButton = new Button();
     menuButton.setGraphic(dots);
-    menuButton.setStyle("-fx-background-color: transparent; -fx-padding: 5 10 5 10; -fx-cursor: hand;");
+    menuButton.setStyle(
+        "-fx-background-color: transparent; -fx-padding: 5 10 5 10; -fx-cursor: hand;");
 
     ContextMenu contextMenu = new ContextMenu();
     MenuItem deleteItem = new MenuItem("Delete this sensor");
@@ -250,8 +270,11 @@ public class LightSensorView {
     layout.getChildren().addAll(statusBar, contentBox);
     layout.setAlignment(Pos.TOP_CENTER);
 
-    layout.setBackground(new Background(new BackgroundFill(Color.WHITE, new CornerRadii(8), Insets.EMPTY)));
-    layout.setBorder(new Border(new BorderStroke(Color.web("#EEEEEE"), BorderStrokeStyle.SOLID, new CornerRadii(8), new BorderWidths(1))));
+    layout.setBackground(
+        new Background(new BackgroundFill(Color.WHITE, new CornerRadii(8), Insets.EMPTY)));
+    layout.setBorder(new Border(
+        new BorderStroke(Color.web("#EEEEEE"), BorderStrokeStyle.SOLID, new CornerRadii(8),
+            new BorderWidths(1))));
     layout.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.rgb(0, 0, 0, 0.1), 10, 0, 0, 5));
     layout.setPrefWidth(CARD_WIDTH);
     layout.setMaxWidth(CARD_WIDTH);

@@ -42,19 +42,8 @@ public class MainApp extends Application {
     public void start(Stage stage) {
         api = new ClientApi();
 
-        // Create the dashboard view
-        dashboardView = new DashboardView(this, api);
-
-        // Create the dashboard scene ONCE and cache it
-        dashboardScene = new Scene(dashboardView.getRoot(), SCENE_WIDTH, SCENE_HEIGHT);
-
-        // Initialize network AFTER UI is set up
-        dashboardView.initNetwork(api);
-
         this.primaryStage = stage;
         primaryStage.setTitle("Green House Control");
-        primaryStage.centerOnScreen();
-        primaryStage.setMaximized(true);
 
         // Load custom font
         Font customFont = Font.loadFont(
@@ -66,13 +55,29 @@ public class MainApp extends Application {
             System.out.println("Font is loaded: " + customFont.getFamily());
         }
 
-        // Initiate the connection loop.
-        attemptInitialConnection(stage);
 
         // Show the stage immediately
         primaryStage.setMinHeight(SCENE_HEIGHT);
         primaryStage.setMinWidth(SCENE_WIDTH);
+
+        //  Sentralize the stage on the screen
+        centerStageOnScreen();
+
+        // Minimum size
+        primaryStage.setMinHeight(1100);
+        primaryStage.setMinWidth(800);
+
+        // Initiate the connection loop.
+        attemptInitialConnection(stage);
         primaryStage.show();
+    }
+
+    /**
+     * Centers the primary stage on the screen.
+     */
+
+    private void centerStageOnScreen() {
+        primaryStage.centerOnScreen();
     }
 
     /**
@@ -150,21 +155,30 @@ public class MainApp extends Application {
             return;
         }
 
-        // Connection Logic (UNCHANGED)
+        // Update dynamic server address
+        this.dynamicServerAddress = serverAddress;
+        System.out.println("🔧 Server address set to: " + this.dynamicServerAddress);
+
+        // Connection Logic
         api.connect(serverAddress, SERVER_PORT).thenRun(() -> {
             System.out.println("✅ Connected to server at " + serverAddress);
             isConnected = true;
-            this.dynamicServerAddress = serverAddress;
 
             Platform.runLater(() -> {
+                if (dashboardView == null) {
+                    dashboardView = new DashboardView(this, api);
+                    dashboardScene = new Scene(dashboardView.getRoot(), SCENE_WIDTH, SCENE_HEIGHT);
+                    dashboardView.initNetwork(api);
+                }
+
                 api.subscribe(List.of("*"), List.of("sensor_update", "node_change"))
-                    .thenRun(() -> {
-                        System.out.println("✅ Subscribed to updates");
-                        api.getTopology().thenAccept(topology -> {
-                            System.out.println("✅ Initial topology loaded: " +
-                                (topology.nodes != null ? topology.nodes.size() : 0) + " nodes");
+                        .thenRun(() -> {
+                            System.out.println("✅ Subscribed to updates");
+                            api.getTopology().thenAccept(topology -> {
+                                System.out.println("✅ Initial topology loaded: " +
+                                        (topology.nodes != null ? topology.nodes.size() : 0) + " nodes");
+                            });
                         });
-                    });
 
                 showSplashScreen();
 
@@ -178,6 +192,9 @@ public class MainApp extends Application {
                 "Please check the IP address and ensure the server is running.";
             System.err.println("❌ Failed to connect to server: " + ex.getMessage());
             isConnected = false;
+
+            //Reset dynamic server address on failure
+            this.dynamicServerAddress = null;
 
             Platform.runLater(() -> {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -202,7 +219,7 @@ public class MainApp extends Application {
         Scene scene = new Scene(splash.getRoot(), SCENE_WIDTH, SCENE_HEIGHT);
         primaryStage.setScene(scene);
         primaryStage.setTitle("Green House Control - Welcome");
-        primaryStage.setMaximized(true);
+        centerStageOnScreen();
     }
 
     public void showRegistrationScreen() {
@@ -210,7 +227,7 @@ public class MainApp extends Application {
         Scene scene = new Scene(registration.getRoot(), SCENE_WIDTH, SCENE_HEIGHT);
         primaryStage.setScene(scene);
         primaryStage.setTitle("Green House Control - Register");
-        primaryStage.setMaximized(true);
+        centerStageOnScreen();
     }
 
     public void showLoginScreen() {
@@ -220,7 +237,7 @@ public class MainApp extends Application {
         Scene scene = new Scene(loginScreenView.getRoot(), SCENE_WIDTH, SCENE_HEIGHT);
         primaryStage.setScene(scene);
         primaryStage.setTitle("Green House Control - Login");
-        primaryStage.setMaximized(true);
+        centerStageOnScreen();
     }
 
     public boolean isConnected() {
@@ -231,6 +248,7 @@ public class MainApp extends Application {
         return dynamicServerAddress;
     }
 
+
     public ClientApi getClientApi() {
         return api;
     }
@@ -239,10 +257,17 @@ public class MainApp extends Application {
      * Displays the dashboard view.
      */
     public void showDashboard(String username) {
+        // Create dashboard if it doesn't exist yet
+        if (dashboardView == null) {
+            dashboardView = new DashboardView(this, api);
+            dashboardScene = new Scene(dashboardView.getRoot(), SCENE_WIDTH, SCENE_HEIGHT);
+            dashboardView.initNetwork(api);
+            centerStageOnScreen();
+        }
+
         dashboardView.setUserGreeting(username);
         primaryStage.setScene(dashboardScene);
         primaryStage.setTitle("Smart Farm Control");
-        primaryStage.setMaximized(true);
     }
 
 
